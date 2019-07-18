@@ -78,6 +78,10 @@ class Layer(tf.keras.layers.Layer):
         for y in seq_splits[1:]:
             output = tf.matmul(output, y)
 
+        output = tf.cast(output, tf.complex64)
+        output = tf.linalg.logm(output)
+        output = tf.cast(output, tf.float32)
+
         output = tf.transpose(output, [0, 3, 4, 1, 5, 2, 6])
         output = tf.reshape(output, [batch_size, query_size,
                                      self.left_num_heads * self.hidden_size,
