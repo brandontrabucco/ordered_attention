@@ -4,7 +4,7 @@
 import tensorflow as tf
 
 
-class Layer(tf.keras.layers.Layer):
+class OrderedAttentionLayer(tf.keras.layers.Layer):
 
     def __init__(
             self,
@@ -14,7 +14,7 @@ class Layer(tf.keras.layers.Layer):
             output_size,
             **kwargs
     ):
-        super(Layer, self).__init__(**kwargs)
+        super(OrderedAttentionLayer, self).__init__(**kwargs)
 
         self.left_num_heads = left_num_heads
         self.right_num_heads = right_num_heads
@@ -51,11 +51,14 @@ class Layer(tf.keras.layers.Layer):
         seq_size = tf.shape(values)[1]
 
         queries = tf.linalg.matrix_transpose(self.query_left(
-            tf.linalg.matrix_transpose(self.query_right(queries))))
+            tf.linalg.matrix_transpose(self.query_right(queries)))) / (
+            float(self.hidden_size))
         keys = tf.linalg.matrix_transpose(self.key_left(
-            tf.linalg.matrix_transpose(self.key_right(keys))))
+            tf.linalg.matrix_transpose(self.key_right(keys)))) / (
+            float(self.hidden_size))
         values = tf.linalg.matrix_transpose(self.value_left(
-            tf.linalg.matrix_transpose(self.value_right(values))))
+            tf.linalg.matrix_transpose(self.value_right(values)))) / (
+            float(self.hidden_size))
 
         extension = [self.left_num_heads, self.hidden_size,
                      self.right_num_heads, self.hidden_size]
@@ -70,21 +73,18 @@ class Layer(tf.keras.layers.Layer):
 
         unscaled_weights = tf.linalg.norm(tf.matmul(queries, keys),
                                           ord=2, axis=[-2, -1], keepdims=True)
-        weights = tf.math.softmax(unscaled_weights / tf.math.sqrt(
+        weights = tf.math.softmax(unscaled_weights / (
             float(self.hidden_size)), axis=-2)
-        seq_splits = tf.split(tf.linalg.expm(values * weights), query_size, axis=4)
+        seq_splits = tf.split(tf.linalg.expm(values * weights), int(query_size), axis=4)
 
         output = seq_splits[0]
         for y in seq_splits[1:]:
             output = tf.matmul(output, y)
-
-        output = tf.cast(output, tf.complex64)
-        output = tf.linalg.logm(output)
-        output = tf.cast(output, tf.float32)
 
         output = tf.transpose(output, [0, 3, 4, 1, 5, 2, 6])
         output = tf.reshape(output, [batch_size, query_size,
                                      self.left_num_heads * self.hidden_size,
                                      self.right_num_heads * self.hidden_size])
         return tf.linalg.matrix_transpose(self.output_left(
-            tf.linalg.matrix_transpose(self.output_right(output))))
+            tf.linalg.matrix_transpose(self.output_right(output)))) / (
+            float(self.hidden_size))
