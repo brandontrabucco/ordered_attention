@@ -1,24 +1,21 @@
 """Author: Brandon Trabucco, Copyright 2019"""
 
 import tensorflow as tf
-from ordered_attention.ordered_attention_layer import OrderedAttentionLayer
+from ordered_attention.attention_layer import AttentionLayer
 
 
 if __name__ == "__main__":
 
-    layer = OrderedAttentionLayer(2, 2, 4, 16)
-
+    layer = AttentionLayer(2, 2, 4, 16)
     data = tf.random.normal([1, 7, 16, 16])
     target = tf.random.normal([1, 7, 16, 16])
+    optimizer = tf.keras.optimizers.Adam()
 
     for i in range(100):
 
-        with tf.GradientTape() as tape:
-
-            tape.watch(data)
-            y = layer(data, data, data)
-
-            loss = tf.reduce_mean(tf.losses.mean_squared_error(target, y))
-            print(loss)
-
-            data -= tape.gradient(loss, data)[0]
+        loss_function = lambda: tf.reduce_mean(
+            tf.losses.mean_squared_error(
+                target,
+                layer([data, data, data])))
+        optimizer.minimize(loss_function, layer.trainable_variables)
+        print(loss_function())
