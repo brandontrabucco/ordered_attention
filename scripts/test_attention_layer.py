@@ -18,4 +18,4 @@ if __name__ == "__main__":
                 target,
                 layer([data, data, data])))
         optimizer.minimize(loss_function, layer.trainable_variables)
-        print(loss_function())
+        print("Test Loss: {:0.5f}".format(loss_function().numpy()))
