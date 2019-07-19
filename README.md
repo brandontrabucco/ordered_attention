@@ -1,2 +1,2 @@
 # ordered_attention
-An independent research project of mine.
+An ordered multi-head attention mechanism.
