@@ -12,9 +12,9 @@ class PartialDenseLayer(tf.keras.layers.Layer):
             output_left_size,
             **kwargs
     ):
-        super(PartialDenseLayer, self).__init__(**kwargs)
-        self.dense_right = tf.keras.layers.Dense(output_right_size)
-        self.dense_left = tf.keras.layers.Dense(output_left_size)
+        super(PartialDenseLayer, self).__init__()
+        self.dense_right = tf.keras.layers.Dense(output_right_size, **kwargs)
+        self.dense_left = tf.keras.layers.Dense(output_left_size, **kwargs)
 
     def call(
             self,
@@ -22,11 +22,4 @@ class PartialDenseLayer(tf.keras.layers.Layer):
             **kwargs
     ):
         return tf.linalg.matrix_transpose(self.dense_left(
-            tf.linalg.matrix_transpose(self.dense_right(inputs))))
-
-    def compute_output_shape(
-            self,
-            input_shape
-    ):
-        return input_shape[:(-1)] + [self.output_left_size *
-                                     self.output_right_size]
+            tf.linalg.matrix_transpose(self.dense_right(inputs, **kwargs)), **kwargs))

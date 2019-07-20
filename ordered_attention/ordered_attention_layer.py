@@ -37,7 +37,7 @@ def merge_heads(
                                   right_num_heads * hidden_size]], 0))
 
 
-class AttentionLayer(tf.keras.layers.Layer):
+class OrderedAttentionLayer(tf.keras.layers.Layer):
 
     def __init__(
             self,
@@ -47,22 +47,27 @@ class AttentionLayer(tf.keras.layers.Layer):
             output_size,
             similarity_method=similarity_methods.method_one,
             merge_method=merge_methods.method_one,
+            use_mask=False,
             **kwargs
     ):
-        super(AttentionLayer, self).__init__(**kwargs)
+        super(OrderedAttentionLayer, self).__init__()
         self.left_num_heads = left_num_heads
         self.right_num_heads = right_num_heads
         self.hidden_size = hidden_size
         self.similarity_method = similarity_method
         self.merge_method = merge_method
+        self.use_mask = use_mask
         self.dense_query = partial_dense_layer.PartialDenseLayer(
-            right_num_heads * hidden_size, left_num_heads * hidden_size)
+            right_num_heads * hidden_size,
+            left_num_heads * hidden_size, **kwargs)
         self.dense_key = partial_dense_layer.PartialDenseLayer(
-            right_num_heads * hidden_size, left_num_heads * hidden_size)
+            right_num_heads * hidden_size,
+            left_num_heads * hidden_size, **kwargs)
         self.dense_value = partial_dense_layer.PartialDenseLayer(
-            right_num_heads * hidden_size, left_num_heads * hidden_size)
+            right_num_heads * hidden_size,
+            left_num_heads * hidden_size, **kwargs)
         self.dense_output = partial_dense_layer.PartialDenseLayer(
-            output_size, output_size)
+            output_size, output_size, **kwargs)
 
     def call(
             self,
@@ -72,14 +77,18 @@ class AttentionLayer(tf.keras.layers.Layer):
         queries, keys, values = inputs
         args = (self.left_num_heads, self.right_num_heads, self.hidden_size)
         queries = separate_heads(self.dense_query(
-            queries) / float(self.hidden_size), *args)
+            queries, **kwargs) / float(self.hidden_size), *args)
         keys = separate_heads(self.dense_key(
-            keys) / float(self.hidden_size), *args)
+            keys, **kwargs) / float(self.hidden_size), *args)
         values = separate_heads(self.dense_value(
-            values) / float(self.hidden_size), *args)
+            values, **kwargs) / float(self.hidden_size), *args)
         weights = tf.math.softmax(self.similarity_method(
             tf.expand_dims(queries, -5),
             tf.expand_dims(keys, -6)) / float(self.hidden_size), axis=(-5))
+        if self.use_mask:
+            weights = weights * tf.expand_dims(tf.expand_dims(tf.linalg.band_part(
+                tf.ones([1, 1, 1, tf.shape(weights)[3], tf.shape(weights)[4]]),
+                -1, 0), -1), -1)
         outputs = self.merge_method(weights, tf.expand_dims(values, -6))
         return self.dense_output(merge_heads(
-            outputs, *args)) / float(self.hidden_size)
+            outputs, *args), **kwargs) / float(self.hidden_size)

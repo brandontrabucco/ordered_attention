@@ -1,7 +1,7 @@
 """Author: Brandon Trabucco, Copyright 2019"""
 
 import tensorflow as tf
-from ordered_attention.attention_layer import AttentionLayer
+from ordered_attention.ordered_attention_layer import OrderedAttentionLayer
 
 
 if __name__ == "__main__":
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     inputs = tf.random.normal([1, 7, 16, 16])
     targets = tf.random.normal([1, 7, 16, 16])
 
-    layer = AttentionLayer(2, 2, 4, 16)
+    layer = OrderedAttentionLayer(2, 2, 4, 16)
     outputs = layer([inputs, inputs, inputs])
     print("[{}, {}]".format(outputs.numpy().max(), outputs.numpy().min()))
 
