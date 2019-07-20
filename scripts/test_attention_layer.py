@@ -1,5 +1,6 @@
 """Author: Brandon Trabucco, Copyright 2019"""
 
+
 import tensorflow as tf
 from ordered_attention.ordered_attention_layer import OrderedAttentionLayer
 
