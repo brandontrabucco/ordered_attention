@@ -71,11 +71,15 @@ class AttentionLayer(tf.keras.layers.Layer):
     ):
         queries, keys, values = inputs
         args = (self.left_num_heads, self.right_num_heads, self.hidden_size)
-        queries = separate_heads(self.dense_query(queries) / float(self.hidden_size), *args)
-        keys = separate_heads(self.dense_key(keys) / float(self.hidden_size), *args)
-        values = separate_heads(self.dense_value(values) / float(self.hidden_size), *args)
+        queries = separate_heads(self.dense_query(
+            queries) / float(self.hidden_size), *args)
+        keys = separate_heads(self.dense_key(
+            keys) / float(self.hidden_size), *args)
+        values = separate_heads(self.dense_value(
+            values) / float(self.hidden_size), *args)
         weights = tf.math.softmax(self.similarity_method(
             tf.expand_dims(queries, -5),
             tf.expand_dims(keys, -6)) / float(self.hidden_size), axis=(-5))
         outputs = self.merge_method(weights, tf.expand_dims(values, -6))
-        return self.dense_output(merge_heads(outputs, *args)) / float(self.hidden_size)
+        return self.dense_output(merge_heads(
+            outputs, *args)) / float(self.hidden_size)
